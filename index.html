@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>⛳ Golf Match Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --green-deep:   #0D2B1F;
+    --green-dark:   #1A3C2E;
+    --green-mid:    #2D6A4F;
+    --green-bright: #52B788;
+    --green-pale:   #D8F3DC;
+    --gold:         #C9A84C;
+    --gold-pale:    #FEF9E7;
+    --red:          #C0392B;
+    --cream:        #FAFAF7;
+    --ink:          #1A1A1A;
+    --muted:        #6B7280;
+    --border:       #E0E8E0;
+    --shadow:       0 4px 24px rgba(0,0,0,.10);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Source Sans 3', sans-serif; background: var(--green-deep); color: var(--ink); min-height: 100vh; }
+
+  /* ── Header ── */
+  #app-header {
+    background: linear-gradient(135deg, #0a1f16 0%, #1A3C2E 60%, #0D2B1F 100%);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    padding: 0 28px; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,.4);
+  }
+  .header-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; flex-wrap: wrap; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-icon { font-size: 36px; }
+  .brand-name { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 900; color: #fff; }
+  .brand-sub { font-size: 11px; color: var(--green-bright); letter-spacing: 1px; text-transform: uppercase; }
+  .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #round-name-input {
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+    color: #fff; border-radius: 8px; padding: 7px 14px; font-size: 14px;
+    font-family: 'Source Sans 3', sans-serif; outline: none; width: 240px; transition: border-color .2s;
+  }
+  #round-name-input:focus { border-color: var(--green-bright); }
+  .btn { padding: 8px 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 13px; font-family: 'Source Sans 3', sans-serif; transition: all .18s; white-space: nowrap; }
+  .btn-gold  { background: var(--gold); color: #fff; }
+  .btn-gold:hover  { background: #b8952a; transform: translateY(-1px); }
+  .btn-green { background: var(--green-mid); color: #fff; }
+  .btn-green:hover { background: var(--green-dark); transform: translateY(-1px); }
+  .btn-red   { background: var(--red); color: #fff; font-size: 12px; padding: 5px 12px; }
+  .btn-red:hover   { background: #a93226; }
+  .tab-nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+  .tab-nav::-webkit-scrollbar { display: none; }
+  .tab-btn { padding: 10px 16px; background: none; border: none; cursor: pointer; font-family: 'Source Sans 3', sans-serif; font-size: 13px; font-weight: 600; color: rgba(255,255,255,.5); border-bottom: 3px solid transparent; transition: all .2s; white-space: nowrap; }
+  .tab-btn:hover { color: rgba(255,255,255,.8); }
+  .tab-btn.active { color: #fff; border-bottom-color: var(--green-bright); }
+
+  /* ── Main ── */
+  #main { max-width: 1500px; margin: 0 auto; padding: 28px 20px 48px; }
+  .card { background: var(--cream); border-radius: 16px; padding: 26px 28px; box-shadow: var(--shadow); animation: fadeUp .3s ease; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  .section-title { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .section-title h2 { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--green-dark); }
+  .section-title .icon { font-size: 24px; }
+
+  /* ── Tables ── */
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .tbl-wrap { overflow-x: auto; }
+  th { background: var(--green-dark); color: #fff; padding: 9px 8px; border: 1px solid rgba(255,255,255,.12); font-weight: 700; white-space: nowrap; font-size: 11px; }
+  td { padding: 7px 8px; border: 1px solid var(--border); font-size: 13px; white-space: nowrap; }
+  tr:nth-child(even) td { background: #F3F8F4; }
+  tr:nth-child(odd)  td { background: #fff; }
+
+  /* ── Tee badges ── */
+  .tee-badge {
+    display: inline-block; padding: 2px 9px; border-radius: 99px;
+    font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  }
+  .tee-Blue   { background: #1565C0; color: #fff; }
+  .tee-White  { background: #fff; color: #333; border: 1px solid #ccc; }
+  .tee-Gold   { background: #F9A825; color: #333; }
+  .tee-Red    { background: #C62828; color: #fff; }
+  .tee-Green  { background: #2E7D32; color: #fff; }
+  .tee-Black  { background: #212121; color: #fff; }
+  .tee-Silver { background: #90A4AE; color: #fff; }
+
+  /* ── Score inputs ── */
+  .score-input { width: 38px; height: 30px; text-align: center; border: none; border-radius: 6px; font-weight: 700; font-size: 13px; font-family: 'Source Sans 3', sans-serif; outline: none; transition: transform .1s; }
+  .score-input:focus { transform: scale(1.15); box-shadow: 0 0 0 2px var(--green-bright); }
+  .putt-input { width: 38px; height: 26px; text-align: center; border: none; border-radius: 5px; font-weight: 600; font-size: 12px; background: #FFF8E7; color: #8B6914; outline: none; font-family: 'Source Sans 3', sans-serif; }
+  .sc-eagle  { background: #1A3C2E; color: #fff; }
+  .sc-birdie { background: #2D6A4F; color: #fff; }
+  .sc-par    { background: #52B788; color: #fff; }
+  .sc-bogey  { background: #FFD166; color: #333; }
+  .sc-double { background: #EF476F; color: #fff; }
+  .sc-worse  { background: #9B1D35; color: #fff; }
+  .sc-empty  { background: #F0F0F0; color: #999; }
+
+  /* ── Leaderboard ── */
+  .medal { font-size: 20px; }
+  .rank-num { display:inline-block;width:26px;height:26px;line-height:26px;border-radius:50%;background:var(--border);color:var(--muted);font-size:12px;font-weight:700;text-align:center; }
+  .badge { display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700; }
+  .badge-done { background:var(--green-pale);color:var(--green-dark); }
+  .badge-prog { background:#FFF3CD;color:#856404; }
+  .fmt-sbf { color: var(--gold); font-weight: 800; }
+  .fmt-net { color: var(--green-mid); font-weight: 800; }
+  .pill { padding:6px 14px;border-radius:99px;border:none;cursor:pointer;font-weight:600;font-size:12px;font-family:'Source Sans 3',sans-serif;transition:all .18s; }
+  .pill-active   { background:var(--green-mid);color:#fff; }
+  .pill-inactive { background:#E8F5E9;color:var(--green-mid); }
+  .pill-inactive:hover { background:var(--green-pale); }
+
+  /* ── Skins ── */
+  .skin-carry { background:#FFF8F0 !important; }
+  .skin-tally { display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px; }
+  .skin-card  { background:linear-gradient(135deg,var(--green-mid),var(--green-dark));color:#fff;border-radius:10px;padding:12px 20px;text-align:center;min-width:90px; }
+  .skin-card .num { font-size:26px;font-weight:800; }
+  .skin-card .nm  { font-size:11px;opacity:.8;margin-top:2px; }
+
+  /* ── Nassau / Match ── */
+  .nassau-result-W { color:var(--green-mid);font-weight:800; }
+  .nassau-result-L { color:var(--red);font-weight:800; }
+  .nassau-result-A { color:var(--muted);font-weight:600; }
+  .match-banner { background:linear-gradient(135deg,var(--green-dark),var(--green-mid));border-radius:14px;padding:20px 28px;color:#fff;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px; }
+  .match-status-lbl { font-size:13px;opacity:.7;margin-bottom:2px; }
+  .match-status-val { font-family:'Playfair Display',serif;font-size:26px;font-weight:900; }
+  .dormie-tag { font-size:12px;color:#FFD166;margin-top:4px; }
+
+  /* ── Forms ── */
+  .form-row   { display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px; }
+  .form-input { padding:8px 12px;border:1.5px solid #C8E6C9;border-radius:8px;font-size:14px;outline:none;font-family:'Source Sans 3',sans-serif;transition:border-color .2s; }
+  .form-input:focus { border-color:var(--green-mid); }
+  .form-select { padding:8px 12px;border:1.5px solid #C8E6C9;border-radius:8px;font-size:13px;outline:none;font-family:'Source Sans 3',sans-serif;background:white;cursor:pointer; }
+  .course-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:24px; }
+  .course-field label { display:block;font-size:12px;font-weight:700;color:var(--green-mid);margin-bottom:5px; }
+
+  /* ── Tee manager ── */
+  .tee-section { background:#F4F9F5;border-radius:12px;padding:18px;margin-bottom:18px;border:1px solid var(--border); }
+  .tee-section-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:14px; }
+  .tee-label { font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--green-dark); }
+  .tee-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:12px; }
+  .tee-field label { display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px; }
+
+  /* ── Info box ── */
+  .info-box { background:var(--gold-pale);border:1px solid #E6C96A;border-radius:10px;padding:12px 16px;font-size:12px;color:#7A5C00;margin-bottom:18px;line-height:1.6; }
+
+  /* ── Summary cells ── */
+  .summary-th { background:var(--gold) !important;color:#fff !important; }
+  .summary-td { background:var(--gold-pale) !important;font-weight:700 !important;color:var(--green-dark) !important; }
+
+  .footer { text-align:center;color:rgba(255,255,255,.3);font-size:12px;margin-top:32px;padding-bottom:20px;font-family:'Playfair Display',serif;letter-spacing:.5px; }
+
+  @media(max-width:600px) { .card{padding:16px;} #round-name-input{width:160px;} .match-banner{flex-direction:column;} }
+</style>
+</head>
+<body>
+
+<div id="app-header">
+  <div class="header-top">
+    <div class="brand">
+      <span class="brand-icon">⛳</span>
+      <div>
+        <div class="brand-name">Golf Match Tracker</div>
+        <div class="brand-sub">USGA Handicap · Multi-Tee · All Formats</div>
+      </div>
+    </div>
+    <div class="header-controls">
+      <input id="round-name-input" type="text" value="Summer Round — Pebble Beach" placeholder="Round name..."/>
+      <button class="btn btn-gold" onclick="exportCSV()">↓ Export CSV</button>
+    </div>
+  </div>
+  <nav class="tab-nav">
+    <button class="tab-btn active"  onclick="showTab('scores',this)">📝 Score Entry</button>
+    <button class="tab-btn" onclick="showTab('board',this)">🏆 Leaderboard</button>
+    <button class="tab-btn" onclick="showTab('skins',this)">💰 Skins</button>
+    <button class="tab-btn" onclick="showTab('nassau',this)">🔱 Nassau</button>
+    <button class="tab-btn" onclick="showTab('match',this)">⚔️ Match Play</button>
+    <button class="tab-btn" onclick="showTab('players',this)">👥 Players</button>
+    <button class="tab-btn" onclick="showTab('tees',this)">🎯 Tees</button>
+  </nav>
+</div>
+
+<div id="main"></div>
+<div class="footer">Golf Match Tracker · USGA Handicap System · Multi-Tee Equity · Export to CSV</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA MODEL
+// ═══════════════════════════════════════════════════════════════
+
+// Each tee: { id, name, color, rating, slope, par, pars[18], si[18] }
+let tees = [
+  {
+    id: 'blue', name: 'Blue', color: '#1565C0',
+    rating: 74.5, slope: 143, par: 72,
+    pars: [4,5,4,4,3,5,3,4,4, 4,4,3,5,5,4,4,3,5],
+    si:   [5,13,11,3,15,7,17,1,9, 10,4,16,6,12,2,8,18,14],
+  },
+  {
+    id: 'gold', name: 'Gold', color: '#F9A825',
+    rating: 72.1, slope: 135, par: 72,
+    pars: [4,5,4,4,3,5,3,4,4, 4,4,3,5,5,4,4,3,5],
+    si:   [5,13,11,3,15,7,17,1,9, 10,4,16,6,12,2,8,18,14],
+  },
+];
+
+// Each player: { id, name, hcpIdx, teeId }
+let players = [
+  {id:1, name:"John Smith",     hcpIdx:8.4,  teeId:'blue'},
+  {id:2, name:"Mike Johnson",   hcpIdx:14.2, teeId:'blue'},
+  {id:3, name:"Dave Williams",  hcpIdx:22.6, teeId:'gold'},
+  {id:4, name:"Tom Brown",      hcpIdx:5.1,  teeId:'blue'},
+  {id:5, name:"Chris Davis",    hcpIdx:18.9, teeId:'gold'},
+  {id:6, name:"Steve Miller",   hcpIdx:11.3, teeId:'gold'},
+];
+
+// scores[playerId]['hN'] = gross hole score, ['pN'] = putts
+let scores = {};
+
+let currentTab  = 'scores';
+let boardFormat = 'Low Net';
+let matchP1idx  = 0, matchP2idx = 1;
+
+// ═══════════════════════════════════════════════════════════════
+// HANDICAP CALCULATIONS  (USGA 2020 System)
+// ═══════════════════════════════════════════════════════════════
+
+function getTee(teeId) {
+  return tees.find(t => t.id === teeId) || tees[0];
+}
+
+// Course Handicap from player's own tee
+// CH = HcpIdx × (Slope/113) + (Rating − Par)
+function courseHcp(hcpIdx, tee) {
+  return Math.round(hcpIdx * (tee.slope / 113) + (tee.rating - tee.par));
+}
+
+// USGA Cross-Tee Equity:
+// Playing Handicap for each player relative to scratch on their own tee,
+// then adjust so the lowest net score reflects equitable competition.
+// We use: playing_hcp = CH (already accounts for tee difficulty via rating/slope).
+// For cross-tee match play / net comparisons the CH from each tee IS the equitable number.
+// We then apply a group adjustment: subtract the lowest CH in group so
+// the scratch-equivalent player gets 0 strokes.
+function getPlayerCH(pl) {
+  const tee = getTee(pl.teeId);
+  return courseHcp(pl.hcpIdx, tee);
+}
+
+// For match play / skins: strokes given = difference from lowest CH player in set
+function minCHInGroup(playerSet) {
+  return Math.min(...playerSet.map(pl => getPlayerCH(pl)));
+}
+
+// Strokes a player gets on a given hole (relative to group minimum)
+function strokesOnHole(playerCH, minCH, si) {
+  const extra = playerCH - minCH;
+  return Math.floor(extra / 18) + (si <= (extra % 18) ? 1 : 0);
+}
+
+// Stableford pts for a player — uses their own tee's par + course HCP
+function getStableford(pid) {
+  const pl  = players.find(p => p.id === pid);
+  if (!pl) return 0;
+  const tee = getTee(pl.teeId);
+  const ch  = getPlayerCH(pl);
+  const gs  = scores[pid] || {};
+  let pts = 0;
+  for (let i = 0; i < 18; i++) {
+    const g = gs['h'+i];
+    if (g == null || g === '') continue;
+    const bonus = Math.floor(ch / 18) + (tee.si[i] <= (ch % 18) ? 1 : 0);
+    const net   = +g - tee.pars[i] - bonus;
+    pts += net <= -2 ? 4 : net === -1 ? 3 : net === 0 ? 2 : net === 1 ? 1 : 0;
+  }
+  return pts;
+}
+
+function getGross(pid) {
+  const gs = scores[pid] || {};
+  let tot = 0, cnt = 0;
+  for (let i = 0; i < 18; i++) {
+    if (gs['h'+i] != null && gs['h'+i] !== '') { tot += +gs['h'+i]; cnt++; }
+  }
+  return cnt === 18 ? tot : null;
+}
+
+function getNet(pid) {
+  const g = getGross(pid);
+  if (g == null) return null;
+  return g - getPlayerCH(players.find(p => p.id === pid));
+}
+
+function getPutts(pid) {
+  const gs = scores[pid] || {};
+  let tot = 0, cnt = 0;
+  for (let i = 0; i < 18; i++) {
+    if (gs['p'+i] != null && gs['p'+i] !== '') { tot += +gs['p'+i]; cnt++; }
+  }
+  return cnt > 0 ? tot : null;
+}
+
+function getOut(pid) {
+  const gs = scores[pid] || {};
+  let t=0,c=0;
+  for(let i=0;i<9;i++) { if(gs['h'+i]!=null&&gs['h'+i]!==''){t+=+gs['h'+i];c++;} }
+  return c===9?t:null;
+}
+function getIn(pid) {
+  const gs = scores[pid] || {};
+  let t=0,c=0;
+  for(let i=9;i<18;i++) { if(gs['h'+i]!=null&&gs['h'+i]!==''){t+=+gs['h'+i];c++;} }
+  return c===9?t:null;
+}
+function isComplete(pid) { return getGross(pid) !== null; }
+
+function scoreClass(gross, par) {
+  if (gross == null || gross === '') return 'sc-empty';
+  const d = +gross - par;
+  if (d <= -2) return 'sc-eagle';
+  if (d === -1) return 'sc-birdie';
+  if (d ===  0) return 'sc-par';
+  if (d ===  1) return 'sc-bogey';
+  if (d ===  2) return 'sc-double';
+  return 'sc-worse';
+}
+
+function teeBadge(teeId) {
+  const t = getTee(teeId);
+  return `<span class="tee-badge" style="background:${t.color};color:${isLight(t.color)?'#333':'#fff'}">${t.name}</span>`;
+}
+
+function isLight(hex) {
+  const c = hex.replace('#','');
+  const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16);
+  return (r*299+g*587+b*114)/1000 > 155;
+}
+
+function teeOptions(selectedId) {
+  return tees.map(t=>`<option value="${t.id}" ${t.id===selectedId?'selected':''}>${t.name}</option>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SCORE ENTRY
+// ═══════════════════════════════════════════════════════════════
+function renderScores() {
+  // Group players by tee so we can show the correct pars per row
+  let html = `<div class="card">
+    <div class="section-title"><span class="icon">📝</span><h2>Score Entry — Hole by Hole</h2></div>
+    <div class="info-box">
+      ℹ️ <b>Multi-Tee Round:</b> Each player's net score is calculated using their assigned tee's Course Rating &amp; Slope.
+      Course Handicap = HCP Index × (Slope ÷ 113) + (Rating − Par). Handicap differentials across tees are automatically equalized for competition.
+    </div>`;
+
+  // Tee legend
+  html += `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+    <span style="font-size:12px;color:var(--muted);font-weight:700">TEES IN PLAY:</span>`;
+  const activeTeeIds = [...new Set(players.map(p=>p.teeId))];
+  activeTeeIds.forEach(tid => {
+    const t = getTee(tid);
+    html += `<span class="tee-badge" style="background:${t.color};color:${isLight(t.color)?'#333':'#fff'};font-size:12px;padding:4px 12px">
+      ${t.name} — Rating ${t.rating} / Slope ${t.slope} / Par ${t.par}
+    </span>`;
+  });
+  html += `</div><div class="tbl-wrap"><table><thead>
+    <tr>
+      <th rowspan="2" style="min-width:130px">Player</th>
+      <th rowspan="2">Tee</th>
+      <th rowspan="2">HCP Idx</th>
+      <th rowspan="2">Course HCP</th>
+      <th rowspan="2" class="summary-th">OUT</th>
+      <th rowspan="2" class="summary-th">IN</th>
+      <th rowspan="2" class="summary-th">GRS</th>
+      <th rowspan="2" class="summary-th">NET</th>
+      <th rowspan="2" class="summary-th">SBF</th>
+      <th rowspan="2" class="summary-th">PUTTS</th>
+      <th colspan="9" style="background:#2D6A4F;text-align:center">FRONT 9</th>
+      <th colspan="9" style="background:#1A6B40;text-align:center">BACK 9</th>
+    </tr><tr>`;
+
+  // Use blue tee for hole header pars (most common) but indicate mixed
+  const headerTee = getTee('blue') || tees[0];
+  for(let i=0;i<18;i++) {
+    html += `<th style="min-width:42px;background:${i<9?'#2D6A4F':'#1A6B40'};font-size:10px">
+      <div>H${i+1}</div><div style="opacity:.65;font-weight:400">P${headerTee.pars[i]}</div></th>`;
+  }
+  html += `</tr></thead><tbody>`;
+
+  players.forEach((pl, pi) => {
+    const tee  = getTee(pl.teeId);
+    const ch   = getPlayerCH(pl);
+    const gs   = scores[pl.id] || {};
+    const gross= getGross(pl.id);
+    const net  = getNet(pl.id);
+    const sbf  = getStableford(pl.id);
+    const out  = getOut(pl.id);
+    const inn  = getIn(pl.id);
+    const putts= getPutts(pl.id);
+
+    html += `<tr>
+      <td style="font-weight:700;color:var(--green-dark)">${pl.name}</td>
+      <td style="text-align:center">${teeBadge(pl.teeId)}</td>
+      <td style="text-align:center;color:var(--muted)">${pl.hcpIdx}</td>
+      <td style="text-align:center;color:var(--green-mid);font-weight:800">${ch}</td>
+      <td class="summary-td" style="text-align:center">${out??'—'}</td>
+      <td class="summary-td" style="text-align:center">${inn??'—'}</td>
+      <td class="summary-td" style="text-align:center">${gross??'—'}</td>
+      <td class="summary-td fmt-net"  style="text-align:center">${net??'—'}</td>
+      <td class="summary-td fmt-sbf"  style="text-align:center">${sbf}</td>
+      <td class="summary-td" style="text-align:center">${putts??'—'}</td>`;
+
+    for(let i=0;i<18;i++) {
+      const val = gs['h'+i] ?? '';
+      const cls = scoreClass(val, tee.pars[i]);
+      // Show par difference if tees differ from header tee
+      const parNote = tee.pars[i] !== headerTee.pars[i]
+        ? `title="Par ${tee.pars[i]} from ${tee.name} tees"` : '';
+      html += `<td style="padding:2px 2px;border:1px solid #ddd" ${parNote}>
+        <input class="score-input ${cls}" type="number" min="1" max="15"
+          value="${val}" placeholder="—"
+          onchange="setScore(${pl.id},'h${i}',this.value,${tee.pars[i]})"
+          oninput="updateScoreColor(this,${tee.pars[i]})"/>
+      </td>`;
+    }
+    html += `</tr>`;
+  });
+
+  // Putts rows
+  players.forEach((pl, pi) => {
+    const gs = scores[pl.id] || {};
+    html += `<tr style="background:#FFF8E7 !important">
+      <td style="color:var(--gold);font-size:11px;font-weight:700">${pl.name} — Putts</td>
+      <td colspan="9"></td>`;
+    for(let i=0;i<18;i++) {
+      const val = gs['p'+i] ?? '';
+      html += `<td style="padding:2px 2px;border:1px solid #ddd">
+        <input class="putt-input" type="number" min="0" max="5" value="${val}" placeholder="—"
+          onchange="setScore(${pl.id},'p${i}',this.value,null)"/>
+      </td>`;
+    }
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table></div></div>`;
+  return html;
+}
+
+function updateScoreColor(inp, par) {
+  const val = inp.value === '' ? null : +inp.value;
+  inp.className = 'score-input ' + scoreClass(val, par);
+}
+
+function setScore(pid, field, val, par) {
+  if (!scores[pid]) scores[pid] = {};
+  scores[pid][field] = val === '' ? '' : +val;
+  // Update color in place if it's a hole score
+  if (par !== null) {
+    const inp = event.target;
+    if (inp) inp.className = 'score-input ' + scoreClass(val===''?null:+val, par);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LEADERBOARD
+// ═══════════════════════════════════════════════════════════════
+function renderBoard() {
+  const rows = players.map(pl => ({
+    id: pl.id, name: pl.name, teeId: pl.teeId,
+    hcpIdx: pl.hcpIdx,
+    ch:     getPlayerCH(pl),
+    gross:  getGross(pl.id),
+    net:    getNet(pl.id),
+    sbf:    getStableford(pl.id),
+    putts:  getPutts(pl.id),
+    done:   isComplete(pl.id),
+  }));
+
+  const fmtKey = boardFormat==='Low Net'?'net':boardFormat==='Stableford'?'sbf':boardFormat==='Total Putts'?'putts':'gross';
+  const asc    = boardFormat !== 'Stableford';
+  const ranked = [...rows.filter(r=>r[fmtKey]!=null)].sort((a,b)=>asc?a[fmtKey]-b[fmtKey]:b[fmtKey]-a[fmtKey]);
+  const rankOf = id => { const i=ranked.findIndex(r=>r.id===id); return i>=0?i+1:null; };
+  const medal  = r => r===1?'🥇':r===2?'🥈':r===3?'🥉':`<span class="rank-num">${r}</span>`;
+
+  let html = `<div class="card">
+    <div class="section-title"><span class="icon">🏆</span><h2>Leaderboard</h2></div>
+    <div class="info-box">
+      ℹ️ Net scores are computed from each player's assigned tee (USGA). All players compete on an equitable basis regardless of which tees they play.
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center">
+      <span style="color:var(--muted);font-size:13px">Rank by:</span>`;
+  ['Low Net','Stableford','Total Putts','Gross'].forEach(f => {
+    html += `<button class="pill ${boardFormat===f?'pill-active':'pill-inactive'}" onclick="setBoardFormat('${f}')">${f}</button>`;
+  });
+  html += `</div><div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Rank</th><th>Player</th><th>Tee</th><th>HCP Idx</th><th>Course HCP</th>
+      <th>Gross</th><th>Net</th><th>Stableford</th><th>Putts</th><th>Status</th>
+    </tr></thead><tbody>`;
+
+  rows.forEach(r => {
+    const rk = rankOf(r.id);
+    html += `<tr>
+      <td style="text-align:center">${rk ? medal(rk) : '—'}</td>
+      <td style="font-weight:700;color:var(--green-dark)">${r.name}</td>
+      <td style="text-align:center">${teeBadge(r.teeId)}</td>
+      <td style="text-align:center;color:var(--muted)">${r.hcpIdx}</td>
+      <td style="text-align:center;color:var(--green-mid);font-weight:800">${r.ch}</td>
+      <td style="text-align:center">${r.gross??'—'}</td>
+      <td style="text-align:center" class="fmt-net">${r.net??'—'}</td>
+      <td style="text-align:center" class="fmt-sbf">${r.sbf}</td>
+      <td style="text-align:center">${r.putts??'—'}</td>
+      <td style="text-align:center"><span class="badge ${r.done?'badge-done':'badge-prog'}">${r.done?'✓ Complete':'In Progress'}</span></td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div></div>`;
+  return html;
+}
+
+function setBoardFormat(f) { boardFormat = f; renderTab(); }
+
+// ═══════════════════════════════════════════════════════════════
+// SKINS  — net with cross-tee equity
+// ═══════════════════════════════════════════════════════════════
+function renderSkins() {
+  const minCH = minCHInGroup(players);
+  let carryover = 0;
+  const skinRows = [];
+  const totals = {};
+
+  for (let i = 0; i < 18; i++) {
+    const netScores = players.map(pl => {
+      const gs = scores[pl.id] || {};
+      const g  = gs['h'+i];
+      if (g == null || g === '') return null;
+      const tee = getTee(pl.teeId);
+      const ch  = getPlayerCH(pl);
+      const bonus = strokesOnHole(ch, minCH, tee.si[i]);
+      return { name: pl.name, teeId: pl.teeId, net: +g - bonus };
+    }).filter(Boolean);
+
+    const skin = 1 + carryover;
+    let winner = null, carry = false;
+    if (netScores.length > 0) {
+      const min = Math.min(...netScores.map(s=>s.net));
+      const winners = netScores.filter(s=>s.net===min);
+      if (winners.length === 1) {
+        winner = winners[0].name;
+        totals[winner] = (totals[winner]||0) + skin;
+        carryover = 0;
+      } else {
+        winner = 'Carry →'; carry = true; carryover = skin;
+      }
+    } else { winner = '—'; }
+    skinRows.push({hole:i+1, par: getTee(players[0]?.teeId||tees[0].id).pars[i], winner, skin, carry});
+  }
+
+  let html = `<div class="card">
+    <div class="section-title"><span class="icon">💰</span><h2>Skins — Cross-Tee Net</h2></div>
+    <div class="info-box">
+      ℹ️ Net scores equalized across tees using USGA method. Strokes allocated per hole based on each player's Course HCP minus the lowest Course HCP in the group.
+    </div>
+    <div class="skin-tally">`;
+  Object.entries(totals).sort((a,b)=>b[1]-a[1]).forEach(([name,s]) => {
+    html += `<div class="skin-card"><div class="num">${s}</div><div class="nm">${name}</div></div>`;
+  });
+  if (!Object.keys(totals).length) html += `<span style="color:var(--muted);font-size:13px">No scores entered yet.</span>`;
+  html += `</div><div class="tbl-wrap"><table>
+    <thead><tr><th>Hole</th><th>Par</th><th>Net Winner</th><th>Skins</th><th>Carry?</th></tr></thead><tbody>`;
+  skinRows.forEach(r => {
+    html += `<tr class="${r.carry?'skin-carry':''}">
+      <td style="text-align:center;font-weight:700">${r.hole}</td>
+      <td style="text-align:center">P${r.par}</td>
+      <td style="font-weight:${r.carry?700:600};color:${r.carry?'var(--gold)':'var(--green-dark)'}">${r.winner}</td>
+      <td style="text-align:center;font-weight:700;color:var(--green-mid)">${r.skin}</td>
+      <td style="text-align:center">${r.carry?'🔄 Yes':'—'}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NASSAU — cross-tee net totals
+// ═══════════════════════════════════════════════════════════════
+function renderNassau() {
+  const minCH = minCHInGroup(players);
+
+  function segTotals(holeRange) {
+    return players.map(pl => {
+      const gs  = scores[pl.id] || {};
+      const tee = getTee(pl.teeId);
+      const ch  = getPlayerCH(pl);
+      let tot = 0, cnt = 0;
+      holeRange.forEach(i => {
+        const g = gs['h'+i];
+        if (g == null || g === '') return;
+        const bonus = strokesOnHole(ch, minCH, tee.si[i]);
+        tot += +g - bonus; cnt++;
+      });
+      return cnt === holeRange.length ? tot : null;
+    });
+  }
+
+  const front9 = Array.from({length:9},(_,i)=>i);
+  const back9  = Array.from({length:9},(_,i)=>i+9);
+  const full18 = Array.from({length:18},(_,i)=>i);
+  const fTots  = segTotals(front9);
+  const bTots  = segTotals(back9);
+  const oTots  = segTotals(full18);
+
+  function matchResult(totals) {
+    const valid = totals.filter(t=>t!==null);
+    if (!valid.length) return totals.map(()=>'—');
+    const min=Math.min(...valid), max=Math.max(...valid);
+    if (min===max) return totals.map(t=>t!=null?'AS':'—');
+    return totals.map(t=>t===null?'—':t===min?'W ✓':t===max?'L ✗':'AS');
+  }
+
+  const fRes=matchResult(fTots), bRes=matchResult(bTots), oRes=matchResult(oTots);
+  const rc = r => r==='W ✓'?'nassau-result-W':r==='L ✗'?'nassau-result-L':r==='AS'?'nassau-result-A':'';
+
+  let html = `<div class="card">
+    <div class="section-title"><span class="icon">🔱</span><h2>Nassau — Front / Back / Overall</h2></div>
+    <div class="info-box">
+      ℹ️ Net strokes equalized across tees. Each player's net is their gross minus the strokes they receive relative to the lowest Course HCP in the group.
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Player</th><th>Tee</th>
+        <th style="background:#2D6A4F">F9 Net</th><th style="background:#2D6A4F">Front</th>
+        <th style="background:#1A6B40">B9 Net</th><th style="background:#1A6B40">Back</th>
+        <th style="background:#B7950B">18 Net</th><th style="background:#B7950B">Overall</th>
+      </tr></thead><tbody>`;
+  players.forEach((pl, i) => {
+    html += `<tr>
+      <td style="font-weight:700;color:var(--green-dark)">${pl.name}</td>
+      <td>${teeBadge(pl.teeId)}</td>
+      <td style="text-align:center;font-weight:700">${fTots[i]??'—'}</td>
+      <td style="text-align:center" class="${rc(fRes[i])}">${fRes[i]}</td>
+      <td style="text-align:center;font-weight:700">${bTots[i]??'—'}</td>
+      <td style="text-align:center" class="${rc(bRes[i])}">${bRes[i]}</td>
+      <td style="text-align:center;font-weight:700">${oTots[i]??'—'}</td>
+      <td style="text-align:center" class="${rc(oRes[i])}">${oRes[i]}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MATCH PLAY — cross-tee
+// ═══════════════════════════════════════════════════════════════
+function renderMatch() {
+  if (players.length < 2) return `<div class="card"><p style="color:var(--muted)">Need at least 2 players.</p></div>`;
+
+  let sel = `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
+    <span style="font-size:13px;color:var(--muted)">Player 1:</span>
+    <select onchange="matchP1idx=+this.value;renderTab()" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);font-family:inherit">
+      ${players.map((p,i)=>`<option value="${i}" ${i===matchP1idx?'selected':''}>${p.name} (${getTee(p.teeId).name})</option>`).join('')}
+    </select>
+    <span style="font-size:13px;color:var(--muted)">vs.</span>
+    <select onchange="matchP2idx=+this.value;renderTab()" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);font-family:inherit">
+      ${players.map((p,i)=>`<option value="${i}" ${i===matchP2idx?'selected':''}>${p.name} (${getTee(p.teeId).name})</option>`).join('')}
+    </select>
+  </div>`;
+
+  const p1=players[matchP1idx], p2=players[matchP2idx];
+  if (!p1||!p2||p1.id===p2.id) return `<div class="card">${sel}<p style="color:var(--muted)">Select two different players.</p></div>`;
+
+  const ch1 = getPlayerCH(p1), ch2 = getPlayerCH(p2);
+  const minCH = Math.min(ch1, ch2);
+  const tee1  = getTee(p1.teeId), tee2 = getTee(p2.teeId);
+
+  let standing=0, thru=0;
+  const holeRows = [];
+
+  for (let i=0; i<18; i++) {
+    const gs1=scores[p1.id]||{}, gs2=scores[p2.id]||{};
+    const g1=gs1['h'+i], g2=gs2['h'+i];
+    if (g1==null||g1===''||g2==null||g2==='') break;
+    const b1 = strokesOnHole(ch1, minCH, tee1.si[i]);
+    const b2 = strokesOnHole(ch2, minCH, tee2.si[i]);
+    const n1 = +g1 - b1, n2 = +g2 - b2;
+    const prev = standing;
+    if (n1 < n2) standing++; else if (n2 < n1) standing--;
+    thru = i+1;
+    holeRows.push({hole:i+1, par:tee1.pars[i], g1:+g1, n1, b1, g2:+g2, n2, b2, change:standing-prev, standing});
+  }
+
+  const holesLeft = 18 - thru;
+  const dormie    = holesLeft > 0 && Math.abs(standing) === holesLeft;
+  const statusTxt = standing===0?'All Square':`${standing>0?p1.name:p2.name} — ${Math.abs(standing)} UP`;
+
+  let html = `<div class="card">
+    <div class="section-title"><span class="icon">⚔️</span><h2>Match Play</h2></div>
+    <div class="info-box">
+      ℹ️ Net strokes equalized using each player's Course HCP from their tee. Strokes given per hole based on the stroke index and HCP difference.
+    </div>
+    ${sel}
+    <div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="background:#F4F9F5;border-radius:10px;padding:10px 16px;font-size:13px">
+        <span class="tee-badge" style="background:${tee1.color};color:${isLight(tee1.color)?'#333':'#fff'}">${tee1.name}</span>
+        &nbsp; ${p1.name} — HCP ${p1.hcpIdx} → Course HCP <b>${ch1}</b>
+      </div>
+      <div style="background:#F4F9F5;border-radius:10px;padding:10px 16px;font-size:13px">
+        <span class="tee-badge" style="background:${tee2.color};color:${isLight(tee2.color)?'#333':'#fff'}">${tee2.name}</span>
+        &nbsp; ${p2.name} — HCP ${p2.hcpIdx} → Course HCP <b>${ch2}</b>
+      </div>
+      <div style="background:#FFF8E7;border-radius:10px;padding:10px 16px;font-size:13px;color:#7A5C00">
+        Strokes given: <b>${Math.abs(ch1-ch2)}</b> to <b>${ch1>ch2?p1.name:p2.name}</b> (lower HCP plays off scratch)
+      </div>
+    </div>
+    <div class="match-banner">
+      <div>
+        <div class="match-status-lbl">Current Status</div>
+        <div class="match-status-val">${statusTxt}</div>
+        ${dormie?`<div class="dormie-tag">DORMIE — ${holesLeft} to play</div>`:''}
+      </div>
+      <div style="text-align:right">
+        <div class="match-status-lbl">Through</div>
+        <div class="match-status-val">${thru} holes</div>
+      </div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Hole</th><th>Par</th>
+        <th>${p1.name}<br><small style="font-weight:400;opacity:.8">Gross</small></th>
+        <th>${p1.name}<br><small style="font-weight:400;opacity:.8">Strokes</small></th>
+        <th>${p1.name}<br><small style="font-weight:400;opacity:.8">Net</small></th>
+        <th>${p2.name}<br><small style="font-weight:400;opacity:.8">Gross</small></th>
+        <th>${p2.name}<br><small style="font-weight:400;opacity:.8">Strokes</small></th>
+        <th>${p2.name}<br><small style="font-weight:400;opacity:.8">Net</small></th>
+        <th>Result</th><th>Status</th>
+      </tr></thead><tbody>`;
+
+  holeRows.forEach(r => {
+    const res = r.change>0?`${p1.name.split(' ')[0]} W`:r.change<0?`${p2.name.split(' ')[0]} W`:'Halved';
+    const rc  = r.change>0?'var(--green-mid)':r.change<0?'var(--red)':'var(--muted)';
+    const sc  = r.standing>0?'var(--green-mid)':r.standing<0?'var(--red)':'var(--muted)';
+    const st  = r.standing===0?'AS':`${r.standing>0?p1.name.split(' ')[0]:p2.name.split(' ')[0]} ${Math.abs(r.standing)}↑`;
+    html += `<tr>
+      <td style="text-align:center;font-weight:700">${r.hole}</td>
+      <td style="text-align:center">P${r.par}</td>
+      <td style="text-align:center">${r.g1}</td>
+      <td style="text-align:center;color:var(--gold);font-weight:700">${r.b1>0?'+'+r.b1:'—'}</td>
+      <td style="text-align:center;font-weight:800;color:var(--green-mid)">${r.n1}</td>
+      <td style="text-align:center">${r.g2}</td>
+      <td style="text-align:center;color:var(--gold);font-weight:700">${r.b2>0?'+'+r.b2:'—'}</td>
+      <td style="text-align:center;font-weight:800;color:var(--green-mid)">${r.n2}</td>
+      <td style="text-align:center;font-weight:700;color:${rc}">${res}</td>
+      <td style="text-align:center;font-weight:700;color:${sc};font-size:12px">${st}</td>
+    </tr>`;
+  });
+
+  if (!holeRows.length) html += `<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px">Enter scores on the Score Entry tab.</td></tr>`;
+  html += `</tbody></table></div></div>`;
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PLAYERS
+// ═══════════════════════════════════════════════════════════════
+function renderPlayers() {
+  let html = `<div class="card">
+    <div class="section-title"><span class="icon">👥</span><h2>Player Roster</h2></div>
+    <div class="form-row">
+      <input id="new-name" class="form-input" style="width:200px" type="text" placeholder="Full name"/>
+      <input id="new-hcp"  class="form-input" style="width:150px" type="number" step="0.1" min="0" max="54" placeholder="HCP Index"/>
+      <select id="new-tee" class="form-select">${teeOptions(tees[0]?.id)}</select>
+      <button class="btn btn-green" onclick="addPlayer()">+ Add Player</button>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>#</th><th>Name</th><th>HCP Index</th><th>Tee</th><th>Course HCP</th><th>Change Tee</th><th>Remove</th></tr></thead>
+      <tbody>`;
+  players.forEach((pl, i) => {
+    const ch = getPlayerCH(pl);
+    const tee = getTee(pl.teeId);
+    html += `<tr>
+      <td style="text-align:center">${i+1}</td>
+      <td style="font-weight:700;color:var(--green-dark)">${pl.name}</td>
+      <td style="text-align:center;color:var(--muted)">${pl.hcpIdx}</td>
+      <td style="text-align:center">${teeBadge(pl.teeId)}</td>
+      <td style="text-align:center;font-weight:800;color:var(--green-mid)">${ch}</td>
+      <td style="text-align:center">
+        <select class="form-select" style="font-size:12px;padding:4px 8px"
+          onchange="changePlayerTee(${pl.id},this.value)">${teeOptions(pl.teeId)}</select>
+      </td>
+      <td style="text-align:center">
+        <button class="btn btn-red" onclick="removePlayer(${pl.id})">✕</button>
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+  return html;
+}
+
+function addPlayer() {
+  const name = document.getElementById('new-name').value.trim();
+  const hcp  = parseFloat(document.getElementById('new-hcp').value);
+  const teeId= document.getElementById('new-tee').value;
+  if (!name || isNaN(hcp)) { alert('Enter a name and handicap index.'); return; }
+  players.push({id:Date.now(), name, hcpIdx:hcp, teeId});
+  renderTab();
+}
+
+function removePlayer(id) {
+  if (!confirm('Remove this player?')) return;
+  players = players.filter(p=>p.id!==id);
+  delete scores[id];
+  renderTab();
+}
+
+function changePlayerTee(pid, teeId) {
+  const pl = players.find(p=>p.id===pid);
+  if (pl) pl.teeId = teeId;
+  // Don't full re-render to avoid losing focus
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TEES MANAGER
+// ═══════════════════════════════════════════════════════════════
+const TEE_COLORS = ['#1565C0','#F9A825','#fff','#C62828','#2E7D32','#212121','#90A4AE','#7B1FA2'];
+const TEE_NAMES  = ['Blue','Gold','White','Red','Green','Black','Silver','Purple'];
+
+function renderTees() {
+  let html = `<div class="card">
+    <div class="section-title"><span class="icon">🎯</span><h2>Tee Box Manager</h2></div>
+    <div class="info-box">
+      ℹ️ Add one set of tees for each set of markers in play. Each tee needs its own <b>Course Rating</b>, <b>Slope</b>, and <b>Par</b> — found on the scorecard.
+      The Course Handicap for each player is automatically calculated from their tee's Rating and Slope. Hole pars and stroke indices can differ by tee.
+    </div>`;
+
+  tees.forEach((t, ti) => {
+    html += `<div class="tee-section">
+      <div class="tee-section-header">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="tee-badge" style="background:${t.color};color:${isLight(t.color)?'#333':'#fff'};font-size:14px;padding:5px 14px">${t.name}</span>
+          <span class="tee-label">${t.name} Tees</span>
+        </div>
+        ${tees.length>1?`<button class="btn btn-red" onclick="removeTee('${t.id}')">✕ Remove Tee</button>`:''}
+      </div>
+      <div class="tee-grid">
+        <div class="tee-field">
+          <label>Tee Name</label>
+          <input class="form-input" style="width:100%" type="text" value="${t.name}"
+            onchange="updateTee('${t.id}','name',this.value)"/>
+        </div>
+        <div class="tee-field">
+          <label>Color</label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">
+            ${TEE_COLORS.map(c=>`<div onclick="updateTee('${t.id}','color','${c}');renderTab()"
+              style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:${c===t.color?'3px solid #333':'2px solid rgba(0,0,0,.15)'};flex-shrink:0"></div>`).join('')}
+          </div>
+        </div>
+        <div class="tee-field">
+          <label>Course Rating</label>
+          <input class="form-input" style="width:100%" type="number" step="0.1" value="${t.rating}"
+            onchange="updateTee('${t.id}','rating',+this.value)"/>
+        </div>
+        <div class="tee-field">
+          <label>Slope Rating</label>
+          <input class="form-input" style="width:100%" type="number" value="${t.slope}"
+            onchange="updateTee('${t.id}','slope',+this.value)"/>
+        </div>
+        <div class="tee-field">
+          <label>Par</label>
+          <input class="form-input" style="width:100%" type="number" value="${t.par}"
+            onchange="updateTee('${t.id}','par',+this.value)"/>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--green-mid);margin-bottom:8px">Hole Pars (H1–H18)</div>
+      <div class="tbl-wrap" style="margin-bottom:12px"><table style="font-size:12px">
+        <thead><tr>
+          <th style="min-width:90px">Field</th>
+          ${Array.from({length:18},(_,i)=>`<th style="min-width:38px">H${i+1}</th>`).join('')}
+          <th>Total</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:700;font-size:11px">Par</td>
+            ${t.pars.map((v,i)=>`<td style="padding:2px;border:1px solid var(--border)">
+              <input type="number" min="3" max="5" value="${v}"
+                style="width:36px;height:26px;text-align:center;border:none;border-radius:5px;background:#EEF7F0;font-weight:700;font-size:12px;outline:none;font-family:inherit"
+                onchange="updateTeePar('${t.id}',${i},+this.value)"/>
+            </td>`).join('')}
+            <td style="text-align:center;font-weight:700;color:var(--green-mid)">${t.pars.reduce((s,v)=>s+v,0)}</td>
+          </tr>
+          <tr>
+            <td style="font-weight:700;font-size:11px">Stroke Index</td>
+            ${t.si.map((v,i)=>`<td style="padding:2px;border:1px solid var(--border)">
+              <input type="number" min="1" max="18" value="${v}"
+                style="width:36px;height:26px;text-align:center;border:none;border-radius:5px;background:#F5F5F5;font-weight:700;font-size:12px;outline:none;font-family:inherit"
+                onchange="updateTeeSI('${t.id}',${i},+this.value)"/>
+            </td>`).join('')}
+            <td style="text-align:center;color:var(--muted)">—</td>
+          </tr>
+        </tbody>
+      </table></div>
+    </div>`;
+  });
+
+  html += `<button class="btn btn-green" style="margin-top:4px" onclick="addTee()">+ Add Tee Set</button>
+  </div>`;
+  return html;
+}
+
+function updateTee(id, field, val) {
+  const t = tees.find(t=>t.id===id);
+  if (t) t[field] = val;
+}
+function updateTeePar(id, idx, val) {
+  const t = tees.find(t=>t.id===id);
+  if (t) { t.pars[idx]=val; t.par=t.pars.reduce((s,v)=>s+v,0); }
+}
+function updateTeeSI(id, idx, val) {
+  const t = tees.find(t=>t.id===id);
+  if (t) t.si[idx]=val;
+}
+
+function addTee() {
+  const usedColors = tees.map(t=>t.color);
+  const color = TEE_COLORS.find(c=>!usedColors.includes(c)) || '#888888';
+  const usedNames = tees.map(t=>t.name);
+  const name  = TEE_NAMES.find(n=>!usedNames.includes(n)) || 'Custom';
+  const baseTee = tees[0];
+  tees.push({
+    id: 'tee_'+Date.now(), name, color,
+    rating: baseTee.rating - 2, slope: baseTee.slope - 8,
+    par: baseTee.par,
+    pars: [...baseTee.pars],
+    si:   [...baseTee.si],
+  });
+  renderTab();
+}
+
+function removeTee(id) {
+  if (tees.length <= 1) { alert('Must have at least one tee set.'); return; }
+  const hasPl = players.some(p=>p.teeId===id);
+  if (hasPl) { alert('Reassign all players from this tee before removing it.'); return; }
+  tees = tees.filter(t=>t.id!==id);
+  renderTab();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════════════════════
+function exportCSV() {
+  const rows = [['Player','HCP Idx','Tee','Course HCP',
+    ...Array.from({length:18},(_,i)=>`H${i+1}`),'Gross','Net','Stableford','Total Putts']];
+  players.forEach(pl => {
+    const tee  = getTee(pl.teeId);
+    const ch   = getPlayerCH(pl);
+    const gs   = scores[pl.id]||{};
+    const hg   = Array.from({length:18},(_,i)=>gs['h'+i]??'');
+    const gross= getGross(pl.id);
+    const net  = getNet(pl.id);
+    const sbf  = getStableford(pl.id);
+    const putts= getPutts(pl.id)??'';
+    rows.push([pl.name, pl.hcpIdx, tee.name, ch, ...hg, gross??'', net??'', sbf, putts]);
+  });
+  const csv  = rows.map(r=>r.join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download=`golf_round_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ROUTING
+// ═══════════════════════════════════════════════════════════════
+function showTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderTab();
+}
+
+function renderTab() {
+  const main = document.getElementById('main');
+  switch(currentTab) {
+    case 'scores':  main.innerHTML = renderScores();  break;
+    case 'board':   main.innerHTML = renderBoard();   break;
+    case 'skins':   main.innerHTML = renderSkins();   break;
+    case 'nassau':  main.innerHTML = renderNassau();  break;
+    case 'match':   main.innerHTML = renderMatch();   break;
+    case 'players': main.innerHTML = renderPlayers(); break;
+    case 'tees':    main.innerHTML = renderTees();    break;
+  }
+}
+
+renderTab();
+</script>
+</body>
+</html>
